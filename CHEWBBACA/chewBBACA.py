@@ -66,6 +66,8 @@ def create_schema():
     parser.add_argument("-v", "--verbose", help="increase output verbosity", dest='verbose', action="store_true",
                         default=False)
     parser.add_argument('-l', nargs='?', type=int, help="minimum bp locus lenght", required=False, default=201)
+    parser.add_argument('--prm', nargs='?', type=str, help="Prodigal run mode. Single or meta. Meta mode is necessary "
+                        "if genomes are too small or if the user is using plasmids.", choices=['single', 'meta'], required=False, default='single')
 
     args = parser.parse_args()
 
@@ -79,6 +81,7 @@ def create_schema():
     verbose = args.verbose
     min_length = args.l
     inputCDS = args.CDS
+    prodigal_mode = args.prm
 
     if inputCDS==True:
         genomeFiles=[os.path.abspath(genomeFiles)]
@@ -108,7 +111,7 @@ def create_schema():
         print( chosenTrainingFile+ " file not found")
         return
     
-    PPanGen.main(genomeFiles,cpuToUse,outputFile,bsr,BlastpPath,min_length,verbose,chosenTrainingFile,inputCDS)
+    PPanGen.main(genomeFiles,cpuToUse,outputFile,bsr,BlastpPath,min_length,verbose,chosenTrainingFile,inputCDS,prodigal_mode)
 
     
     
@@ -143,6 +146,8 @@ def allele_call():
     parser.add_argument("--fc", help="force continue", required=False, action="store_true", default=False)
     parser.add_argument("--fr", help="force reset", required=False, action="store_true", default=False)
     parser.add_argument("--json", help="report in json file", required=False, action="store_true", default=False)
+    parser.add_argument('--prm', nargs='?', type=str, help="Prodigal run mode. Single or meta. Meta mode is necessary "
+                        "if genomes are too small or if the user is using plasmids.", choices=['single', 'meta'], required=False, default='single')
 
     args = parser.parse_args()
 
@@ -161,6 +166,7 @@ def allele_call():
     contained = args.contained
     inputCDS = args.CDS
     jsonReport = args.json
+    prodigal_mode = args.prm
 
     genes2call = check_if_list_or_folder(genes)
 
@@ -208,7 +214,7 @@ def allele_call():
         genomes2call = "listGenomes2Call.txt"
 
     
-    BBACA.main(genomes2call,genes2call,cpuToUse,gOutFile,BSRTresh,BlastpPath,forceContinue,jsonReport,verbose,forceReset,contained,chosenTaxon,chosenTrainingFile,inputCDS,sizeTresh)
+    BBACA.main(genomes2call,genes2call,cpuToUse,gOutFile,BSRTresh,BlastpPath,forceContinue,jsonReport,verbose,forceReset,contained,chosenTaxon,chosenTrainingFile,inputCDS,sizeTresh,prodigal_mode)
 
 
     try:
@@ -413,7 +419,7 @@ def main():
     functions_list = ['CreateSchema', 'AlleleCall', 'SchemaEvaluator', 'TestGenomeQuality', 'ExtractCgMLST','RemoveGenes','PrepExternalSchema','JoinProfiles','UniprotFinder']
     desc_list = ['Create a gene by gene schema based on genomes', 'Perform allele call for target genomes', 'Tool that builds an html output to better navigate/visualize your schema', 'Analyze your allele call output to refine schemas', 'Select a subset of loci without missing data (to be used as PHYLOViZ input)','Remove a provided list of loci from your allele call output','prepare an external schema to be used by chewBBACA','join two profiles in a single profile file','get info about a schema created with chewBBACA']
 
-    version="2.0.17.1"
+    version="2.0.16"
     createdBy="Mickael Silva"
     rep="https://github.com/B-UMMI/chewBBACA"
     contact="mickaelsilva@medicina.ulisboa.pt"

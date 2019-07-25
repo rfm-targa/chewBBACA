@@ -212,7 +212,7 @@ def translateSeq(DNASeq):
 # ======================================================== #
 #            Allele calling and classification             #
 # ======================================================== #
-def main(input_file,temppath,blastPath,verbose,bsrTresh,sizeTresh):
+def main(input_file, temppath, blastPath, verbose, bsrTresh, sizeTresh, invalid_genomes):
     #~ try:
         #~ input_file = sys.argv[1]
         #~ temppath = sys.argv[2]
@@ -249,7 +249,12 @@ def main(input_file,temppath,blastPath,verbose,bsrTresh,sizeTresh):
     verboseprint("Using gene: " + str(geneFile))
     shortgeneFile = os.path.join(os.path.dirname(argumentList[0]), "short", os.path.basename(argumentList[0]))
     shortgeneFile = shortgeneFile.replace(".fasta", "_short.fasta")
+    
+    # get list of genomes and remove invalid genomes
     genomesList = argumentList[1]
+    for genome in invalid_genomes:
+        genomesList.remove(genome)
+
     genesList = argumentList[2]
 
     newListgenes = []
@@ -327,8 +332,13 @@ def main(input_file,temppath,blastPath,verbose,bsrTresh,sizeTresh):
         # load the CDS from the genome to a dictionary
         filepath = os.path.join(temppath, str(os.path.basename(genomeFile)) + "_ORF_Protein.txt")
 
+        #try:
         with open(filepath, 'rb') as f:
             currentCDSDict = pickle.load(f)
+        #except:
+            #print('Skipping analysis of genome {0}. No valid CDSs found.'.format(os.path.basename(genomeFile)))
+            #continue
+
 
         try:
             intersection = set(fullAlleleList).intersection(currentCDSDict.values())

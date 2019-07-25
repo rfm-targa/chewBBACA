@@ -59,26 +59,30 @@ def prepGenomes(genomeFile, basepath, verbose,inputCDS):
         filepath = os.path.join(basepath, str(os.path.basename(genomeFile)) + "_ORF.txt")
         with open(filepath, 'rb') as f:
             currentCDSDict = pickle.load(f)
-
+            #print(currentCDSDict)
         for contig in SeqIO.parse(genomeFile, "fasta", generic_dna):
             sequence = str(contig.seq.upper())
             currentGenomeDict[contig.id] = sequence
 
 
         for contigTag, value in currentCDSDict.items():
-
+            #print(contigTag, value, currentCDSDict)
             for protein in value:
                 try:
                     seq = currentGenomeDict[contigTag][protein[0]:protein[1]].upper()
+                    #print(seq)
                     protseq, inverted, seq = translateSeq(seq, verbose)
+                    #print(protseq, inverted, seq)
                     j += 1
                     if inverted:
                         idstr = ">" + contigTag + "&protein" + str(j) + "&" + str(protein[1]) + "-" + str(protein[0])
                     else:
                         idstr = ">" + contigTag + "&protein" + str(j) + "&" + str(protein[0]) + "-" + str(protein[1])
+                    #print(idstr)
                     genomeProts += idstr + "\n"
                     listOfCDS[idstr] = seq
                     genomeProts += str(protseq) + "\n"
+                    #print(genomeProts,listOfCDS,genomeProts)
                 except Exception as e:
                     verboseprint((str(e) + " " + str(genomeFile)))
                     pass
@@ -101,24 +105,32 @@ def prepGenomes(genomeFile, basepath, verbose,inputCDS):
                 print (contig.id+" is not translatable to protein, sequence ignored")
                 pass
 
-    if j<2:
-        raise ValueError("your genome has something wrong, are you using a genome as a CDS fasta file or vice versa?")
+    # changed to 1 so that chewie accepts cases with just 1 CDS, plasmids can are such cases
+    if j >= 1:
+        #raise ValueError("your genome has something wrong, are you using a genome as a CDS fasta file or vice versa?")
 
-    filepath = os.path.join(basepath, str(os.path.basename(genomeFile)) + "_ORF_Protein.txt")
-    with open(filepath, 'wb') as f:
-        var = listOfCDS
-        pickle.dump(var, f)
-    listOfCDS = ''
+        filepath = os.path.join(basepath, str(os.path.basename(genomeFile)) + "_ORF_Protein.txt")
 
-    filepath = os.path.join(basepath, str(os.path.basename(genomeFile)) + "_Protein.fasta")
-    with open(filepath, 'w') as f:
-        f.write(genomeProts)
-    genomeProts = ''
-    var = ''
-    currentGenomeDict = ''
-    currentCDSDict = ''
+        with open(filepath, 'wb') as f:
+            var = listOfCDS
+            pickle.dump(var, f)
+        listOfCDS = ''
 
-    return True
+        filepath = os.path.join(basepath, str(os.path.basename(genomeFile)) + "_Protein.fasta")
+        with open(filepath, 'w') as f:
+            f.write(genomeProts)
+        genomeProts = ''
+        var = ''
+        currentGenomeDict = ''
+        currentCDSDict = ''
+
+        return True
+
+    # if a genome has no valid CDSs, just return the genome path/identifier
+    # to be removed
+    elif j < 1:
+
+        return genomeFile
 
 
 def reverseComplement(strDNA):
@@ -226,7 +238,7 @@ def loci_translation(genesList, listOfGenomes2, verbose):
 
 # ================================================ MAIN ================================================ #
 
-def main(genomeFiles,genes,cpuToUse,gOutFile,BSRTresh,BlastpPath,forceContinue,jsonReport,verbose,forceReset,contained,chosenTaxon,chosenTrainingFile,inputCDS,sizeTresh):
+def main(genomeFiles,genes,cpuToUse,gOutFile,BSRTresh,BlastpPath,forceContinue,jsonReport,verbose,forceReset,contained,chosenTaxon,chosenTrainingFile,inputCDS,sizeTresh,prodigal_mode):
 
     #~ parser = argparse.ArgumentParser(description="This program call alleles for a set of genomes provided a schema")
     #~ parser.add_argument('-i', nargs='?', type=str, help='List of genome files (list of fasta files)', required=True)
@@ -453,7 +465,7 @@ def main(genomeFiles,genes,cpuToUse,gOutFile,BSRTresh,BlastpPath,forceContinue,j
 
                 pool = multiprocessing.Pool(cpuToUse)
                 for genome in listOfGenomes:
-                    pool.apply_async(runProdigal.main, (str(genome), basepath, str(chosenTaxon)))
+                    pool.apply_async(runProdigal.main, (str(genome), basepath, str(chosenTaxon), prodigal_mode))
 
                 pool.close()
                 pool.join()
@@ -475,20 +487,39 @@ def main(genomeFiles,genes,cpuToUse,gOutFile,BSRTresh,BlastpPath,forceContinue,j
 
                 print ("Finishing Prodigal at : " + time.strftime("%H:%M:%S-%d/%m/%Y"))
 
-
-
             # ---CDS to protein---#
 
             # translate the genome CDSs, load them into dictionaries and fasta files to be used further ahead
 
-            print ("Translating genomes")
+            print ("Translating genomes...\n")
+            invalid_genomes = []
             pool = multiprocessing.Pool(cpuToUse)
             for genomeFile in listOfGenomes:
-                pool.apply_async(prepGenomes, args=[str(genomeFile), basepath, verbose,inputCDS])
+                pool.apply_async(prepGenomes, args=[str(genomeFile), basepath, verbose,inputCDS], callback=invalid_genomes.append)
             pool.close()
             pool.join()
 
-            print ("Starting Genome Blast Db creation at : " + time.strftime("%H:%M:%S-%d/%m/%Y"))
+            #print(invalid_genomes)
+
+            invalid_genomes = [genome for genome in invalid_genomes if genome != True]
+
+            #print(invalid_genomes)
+
+            #print(len(listOfGenomes))
+
+            for genome in invalid_genomes:
+                # remove from list of files with all genomes paths
+                listOfGenomes.remove(genome)
+                # remove from list with genomes basenames so that output files do not have the removed genomes and have all other genomes
+                listOfGenomesBasename.remove(os.path.basename(genome))
+                invalid_orf_file = os.path.join(basepath, os.path.basename(genome)+'_ORF.txt')
+                #print(invalid_orf_file)
+                os.remove(invalid_orf_file)
+                print('Removed genome {0} from analysis. Had no valid CDSs.'.format(os.path.basename(genome)))
+
+            #print(len(listOfGenomes))
+
+            print ("\nStarting Genome Blast Db creation at : " + time.strftime("%H:%M:%S-%d/%m/%Y"))
 
             # creation of the Databases for each genome, one genome per core using n cores
 
@@ -525,13 +556,12 @@ def main(genomeFiles,genes,cpuToUse,gOutFile,BSRTresh,BlastpPath,forceContinue,j
     print ("Starting Allele Calling at : " + time.strftime("%H:%M:%S-%d/%m/%Y"))
 
     # Run the allele call, one gene per core using n cores
-
+    print(len(argumentsList))
 
     pool = multiprocessing.Pool(cpuToUse)
     for argList in argumentsList:
-        #~ print (argList)
-        #~ asdasd
-        pool.apply_async(callAlleles_protein3.main,(str(argList), basepath, str(BlastpPath),str(verbose),str(BSRTresh),str(sizeTresh)))
+        # pass invalid genomes to remove them from list of genomes that was saved in all files with arguments (argList)
+        pool.apply_async(callAlleles_protein3.main,(str(argList), basepath, str(BlastpPath),str(verbose),str(BSRTresh),str(sizeTresh),invalid_genomes))
 
     pool.close()
     pool.join()
