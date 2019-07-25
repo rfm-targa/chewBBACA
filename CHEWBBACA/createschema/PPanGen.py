@@ -321,7 +321,7 @@ def call_proc(cmd):
 
 # ================================================ MAIN ================================================ #
 
-def main(genomeFiles,cpuToUse,outputFile,bsr,BlastpPath,min_length,verbose,chosenTrainingFile,inputCDS):
+def main(genomeFiles,cpuToUse,outputFile,bsr,BlastpPath,min_length,verbose,chosenTrainingFile,inputCDS,prodigal_mode):
     #~ parser = argparse.ArgumentParser(description="This program call alleles for a set of genomes provided a schema")
     #~ parser.add_argument('-i', nargs='?', type=str, help='List of genome files (list of fasta files)', required=True)
     #~ parser.add_argument('-o', nargs='?', type=str, help="Name of the output files", required=True)
@@ -451,7 +451,7 @@ def main(genomeFiles,cpuToUse,outputFile,bsr,BlastpPath,min_length,verbose,chose
         print ("chosen taxon :" + str(chosenTaxon))
         pool = multiprocessing.Pool(cpuToUse)
         for genome in listOfGenomes:
-            pool.apply_async(runProdigal.main,( str(genome), basepath, str(chosenTaxon)))
+            pool.apply_async(runProdigal.main,( str(genome), basepath, str(chosenTaxon), prodigal_mode))
 
         pool.close()
         pool.join()

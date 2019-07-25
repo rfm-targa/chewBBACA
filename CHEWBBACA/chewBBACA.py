@@ -66,6 +66,9 @@ def create_schema():
     parser.add_argument("-v", "--verbose", help="increase output verbosity", dest='verbose', action="store_true",
                         default=False)
     parser.add_argument('-l', nargs='?', type=int, help="minimum bp locus lenght", required=False, default=201)
+    parser.add_argument('--prm', nargs='?', type=str, help="Prodigal run mode. Single or meta. Meta mode is necessary "
+                        "if input genomes/assemblies/plasmids have a total number of base pairs below 20000bp.", 
+                        choices=['single', 'meta'], required=False, default='single')
 
     args = parser.parse_args()
 
@@ -79,6 +82,7 @@ def create_schema():
     verbose = args.verbose
     min_length = args.l
     inputCDS = args.CDS
+    prodigal_mode = args.prm
 
     if inputCDS==True:
         genomeFiles=[os.path.abspath(genomeFiles)]
@@ -108,7 +112,7 @@ def create_schema():
         print( chosenTrainingFile+ " file not found")
         return
     
-    PPanGen.main(genomeFiles,cpuToUse,outputFile,bsr,BlastpPath,min_length,verbose,chosenTrainingFile,inputCDS)
+    PPanGen.main(genomeFiles,cpuToUse,outputFile,bsr,BlastpPath,min_length,verbose,chosenTrainingFile,inputCDS,prodigal_mode)
 
     
     
@@ -143,6 +147,9 @@ def allele_call():
     parser.add_argument("--fc", help="force continue", required=False, action="store_true", default=False)
     parser.add_argument("--fr", help="force reset", required=False, action="store_true", default=False)
     parser.add_argument("--json", help="report in json file", required=False, action="store_true", default=False)
+    parser.add_argument('--prm', nargs='?', type=str, help="Prodigal run mode. Single or meta. Meta mode is necessary "
+                        "if input genomes/assemblies/plasmids have a total number of base pairs below 20000bp.", 
+                        choices=['single', 'meta'], required=False, default='single')
 
     args = parser.parse_args()
 
@@ -161,6 +168,7 @@ def allele_call():
     contained = args.contained
     inputCDS = args.CDS
     jsonReport = args.json
+    prodigal_mode = args.prm
 
     genes2call = check_if_list_or_folder(genes)
 
@@ -208,7 +216,7 @@ def allele_call():
         genomes2call = "listGenomes2Call.txt"
 
     
-    BBACA.main(genomes2call,genes2call,cpuToUse,gOutFile,BSRTresh,BlastpPath,forceContinue,jsonReport,verbose,forceReset,contained,chosenTaxon,chosenTrainingFile,inputCDS,sizeTresh)
+    BBACA.main(genomes2call,genes2call,cpuToUse,gOutFile,BSRTresh,BlastpPath,forceContinue,jsonReport,verbose,forceReset,contained,chosenTaxon,chosenTrainingFile,inputCDS,sizeTresh,prodigal_mode)
 
 
     try:
